@@ -4,6 +4,7 @@ import Combine
 enum Demo: String, CaseIterable, Identifiable {
     case layer = "Layer hosting"
     case view  = "NSView hosting (Metal)"
+    case reactNative = "RN-style (height-only)"
     var id: String { rawValue }
 }
 
@@ -24,11 +25,16 @@ struct ContentView: View {
                 ForEach(Demo.allCases) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
-            controls
-            metricsPanel
-            hint
-            Divider()
-            hostedArea
+
+            if demo == .reactNative {
+                RNDemoView()
+            } else {
+                controls
+                metricsPanel
+                hint
+                Divider()
+                hostedArea
+            }
         }
         .padding(20)
         .frame(minWidth: 700, minHeight: 720)
@@ -83,6 +89,8 @@ struct ContentView: View {
             return "Reparents a CALayer between host NSViews. In pooled mode the spinner keeps spinning and the tick counter keeps climbing across teardown — the backing store survived."
         case .view:
             return "Reparents a full NSView (live Metal draw loop + an AppKit HUD subview). On pooled teardown the view leaves its window (⏸ logged via viewDidMoveToWindow) then re-enters (▶️); the frame counter keeps climbing. Watch the console for the lifecycle logs."
+        case .reactNative:
+            return ""   // RN demo supplies its own explanation
         }
     }
 
@@ -119,6 +127,7 @@ struct ContentView: View {
             case (.layer, false): NaiveLayerView(rendererID: "main-canvas")
             case (.view, true):   PooledRenderViewRepresentable(rendererID: "main-view")
             case (.view, false):  NaiveRenderViewRepresentable(rendererID: "main-view")
+            case (.reactNative, _): EmptyView()   // handled above by RNDemoView
             }
         }
         .id(identityToken) // forcing a new identity = forcing make/dismantle of the host
