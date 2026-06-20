@@ -48,9 +48,10 @@ struct PooledLayerView: NSViewRepresentable {
     let rendererID: String
 
     func makeNSView(context: Context) -> LayerHostView {
-        Metrics.shared.recordMake("makeNSView (POOLED) — reparenting shared layer for \(rendererID)")
         let host = LayerHostView()
         host.renderer = RendererPool.shared.renderer(for: rendererID)
+        Metrics.shared.recordMake("makeNSView (POOLED) — reparenting shared layer for \(rendererID)",
+                                  built: ExpensiveRenderer.creationCount)
         return host
     }
 
@@ -61,7 +62,8 @@ struct PooledLayerView: NSViewRepresentable {
     }
 
     static func dismantleNSView(_ nsView: LayerHostView, coordinator: ()) {
-        Metrics.shared.recordDismantle("dismantleNSView (POOLED) — detach only, pool keeps it alive")
+        Metrics.shared.recordDismantle("dismantleNSView (POOLED) — detach only, pool keeps it alive",
+                                       built: ExpensiveRenderer.creationCount)
         nsView.renderer = nil // didSet detaches the layer; the pool still owns the renderer
     }
 }
@@ -72,16 +74,18 @@ struct NaiveLayerView: NSViewRepresentable {
     let rendererID: String
 
     func makeNSView(context: Context) -> LayerHostView {
-        Metrics.shared.recordMake("makeNSView (NAIVE) — building a brand-new renderer 😱")
         let host = LayerHostView()
         host.renderer = ExpensiveRenderer(id: rendererID) // full cost, every single time
+        Metrics.shared.recordMake("makeNSView (NAIVE) — building a brand-new renderer 😱",
+                                  built: ExpensiveRenderer.creationCount)
         return host
     }
 
     func updateNSView(_ nsView: LayerHostView, context: Context) {}
 
     static func dismantleNSView(_ nsView: LayerHostView, coordinator: ()) {
-        Metrics.shared.recordDismantle("dismantleNSView (NAIVE) — destroying renderer, work discarded")
+        Metrics.shared.recordDismantle("dismantleNSView (NAIVE) — destroying renderer, work discarded",
+                                       built: ExpensiveRenderer.creationCount)
         nsView.renderer = nil // released -> deinit -> everything thrown away
     }
 }
