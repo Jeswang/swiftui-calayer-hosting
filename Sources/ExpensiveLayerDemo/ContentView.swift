@@ -5,6 +5,7 @@ enum Demo: String, CaseIterable, Identifiable {
     case layer = "Layer hosting"
     case view  = "NSView hosting (Metal)"
     case reactNative = "RN-style (height-only)"
+    case fence = "Window fence (recycle)"
     var id: String { rawValue }
 }
 
@@ -26,9 +27,12 @@ struct ContentView: View {
             }
             .pickerStyle(.segmented)
 
-            if demo == .reactNative {
+            switch demo {
+            case .reactNative:
                 RNDemoView()
-            } else {
+            case .fence:
+                FenceDemoView()
+            default:
                 controls
                 metricsPanel
                 hint
@@ -89,8 +93,8 @@ struct ContentView: View {
             return "Reparents a CALayer between host NSViews. In pooled mode the spinner keeps spinning and the tick counter keeps climbing across teardown — the backing store survived."
         case .view:
             return "Reparents a full NSView (live Metal draw loop + an AppKit HUD subview). On pooled teardown the view leaves its window (⏸ logged via viewDidMoveToWindow) then re-enters (▶️); the frame counter keeps climbing. Watch the console for the lifecycle logs."
-        case .reactNative:
-            return ""   // RN demo supplies its own explanation
+        case .reactNative, .fence:
+            return ""   // these demos supply their own explanation
         }
     }
 
@@ -128,6 +132,7 @@ struct ContentView: View {
             case (.view, true):   PooledRenderViewRepresentable(rendererID: "main-view")
             case (.view, false):  NaiveRenderViewRepresentable(rendererID: "main-view")
             case (.reactNative, _): EmptyView()   // handled above by RNDemoView
+            case (.fence, _): EmptyView()         // handled above by FenceDemoView
             }
         }
         .id(identityToken) // forcing a new identity = forcing make/dismantle of the host
